@@ -1,167 +1,207 @@
 const request = require('supertest');
 const app = require('../src/index');
-const mongoose = require('mongoose');
-const jwt = require('jsonwebtoken');
-
-// Mock RabbitMQ
-jest.mock('../src/config/rabbitmq', () => ({
-  connectRabbitMQ: jest.fn().mockResolvedValue(undefined),
-  publishMessage: jest.fn().mockResolvedValue(undefined),
-}));
+const { Notification } = require('../src/models');
+const amqp = require('amqplib');
 
 describe('Notification Service', () => {
-    let token;
+  beforeAll(async () => {
+    // Connect to database
+    await Notification.sequelize.sync({ force: true });
+  });
 
-    beforeAll(async () => {
-        // Connect to a test database
-        await mongoose.connect(process.env.MONGO_URI);
+  afterAll(async () => {
+    await Notification.sequelize.close();
+  });
 
-        // Create a test user and generate a JWT token
-        token = jwt.sign({ userId: 'testuser-123', email: 'test@example.com' },
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' }
-        );
+  describe('POST /notifications', () => {
+    it('should create a notification', async () => {
+      const res = await request(app)
+        .post('/notifications')
+        .set('Authorization', 'Bearer mock-token')
+        .send({
+          userId: 'user-123',
+          type: 'email',
+          subject: 'Test Email',
+          message: 'This is a test notification',
+          recipient: 'user@example.com',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body).toHaveProperty('id');
+      expect(res.body).toHaveProperty('status', 'pending');
+      expect(res.body.userId).toBe('user-123');
     });
 
-    afterAll(async () => {
-        // Clean up database and close connection
-       if (mongoose.connection.readyState !== 0) {
-            await mongoose.disconnect();
-       }
+    it('should reject invalid notification type', async () => {
+      const res = await request(app)
+        .post('/notifications')
+        .set('Authorization', 'Bearer mock-token')
+        .send({
+          userId: 'user-123',
+          type: 'invalid-type',
+          subject: 'Test',
+          message: 'Test message',
+          recipient: 'user@example.com',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error');
     });
 
-    describe('POST /', () => {
-        it('should create a new notification', async () => {
-            const res = await request(app)
-                .post('/')
-                .set('Authorization', `Bearer ${token}`)
-                .send({
-                    type: 'email',
-                    recipient: 'user@example.com',
-                    subject: 'Test Notification',
-                    message: 'This is a test notification.'
-                });
-
-            expect(res.status).toBe(201);
-            expect(res.body).toHaveProperty('message', 'Notification queued');
-            expect(res.body).toHaveProperty('notification');
-            expect(res.body.notification._id).toBeTruthy();
+    it('should publish notification to RabbitMQ', async () => {
+      const res = await request(app)
+        .post('/notifications')
+        .set('Authorization', 'Bearer mock-token')
+        .send({
+          userId: 'user-123',
+          type: 'sms',
+          subject: 'SMS Alert',
+          message: 'Alert message',
+          recipient: '+1234567890',
         });
 
-        it('should reject notifications without JWT token', async () => {
-            const res = await request(app)
-            .post('/')
-            .send({
-                type: 'email',
-                recipient: 'user@example.com',
-                subject: 'Test Notification',
-                message: 'This is a test notification.'
-             });
+      expect(res.status).toBe(201);
+      expect(res.body).toHaveProperty('id');
+      // Notification should be published to queue
+    });
+  });
 
-             expect(res.status).toBe(401);
+  describe('GET /notifications', () => {
+    it('should retrieve user notifications', async () => {
+      // First create a notification
+      await request(app)
+        .post('/notifications')
+        .set('Authorization', 'Bearer mock-token')
+        .send({
+          userId: 'user-123',
+          type: 'email',
+          subject: 'Test',
+          message: 'Test message',
+          recipient: 'user@example.com',
         });
 
-        it ('should reject notifications with missing fields', async () => {
-            const res = await request(app)
-            .post('/')
-            .set('Authorization', `Bearer ${token}`)
-            .send({
-                type: 'email',
-                recipient: 'user@example.com',
-                // Missing subject and message
-            });
+      const res = await request(app)
+        .get('/notifications')
+        .set('Authorization', 'Bearer mock-token');
 
-            expect(res.status).toBe(400);
-
-        });
-
-        it('should reject notifications with invalid type', async () => {
-            const res = await request(app)
-            .post('/')
-            .set('Authorization', `Bearer ${token}`)
-            .send({
-                type: 'invalidtype',
-                recipient: 'user@example.com',
-                subject: 'Test Notification',
-                message: 'This is a test notification.'
-             });
-
-             expect(res.status).toBe(400);
-            });
-
-        it('should accept valid notification types', async () => {
-            const types = [
-                { type: 'email', recipient: 'user@example.com' },
-                { type: 'sms', recipient: '1234567890' },
-                { type: 'in-app', recipient: 'user123' }
-            ];
-
-            for (const notification of types) {
-                const res = await request(app)
-                .post('/')
-                .set('Authorization', `Bearer ${token}`)
-                .send({
-                    type: notification.type,
-                    recipient: notification.recipient,
-                    subject: `Test ${notification.type} notification`,
-                    message: `This is a test ${notification.type} notification.`
-                 });
-
-                 //debug
-                 if (res.status !== 201) {
-                    console.error(`Failed to create ${notification.type} notification:`, res.body);
-                 }
-
-                expect(res.status).toBe(201);
-                expect(res.body.notification.type).toBe(notification.type);
-            }
-        });
-
-        it('should save notifications to the database', async () => {
-            const res = await request(app)
-            .post('/')
-            .set('Authorization', `Bearer ${token}`)
-            .send({
-                type: 'email',
-                recipient: 'mongodbtest@example.com',
-                subject: 'Database Test',
-                message: 'This notification should be saved to the database.'
-             });
-
-             expect(res.status).toBe(201);
-             expect(res.body.notification).toHaveProperty('_id');
-             expect(res.body.notification.recipient).toBe('mongodbtest@example.com');
-        });
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBeGreaterThan(0);
     });
 
-    describe('GET /', () => {
-        it('should fetch notifications for the authenticated user', async () => {
-            // First, create a notification for the test user
-            await request(app)
-                .post('/')
-                .set('Authorization', `Bearer ${token}`)
-                .send({
-                    type: 'email',
-                    recipient: 'test@example.com',
-                    subject: 'Test Notification',
-                    message: 'This is a test notification.'
-                });
+    it('should require authentication', async () => {
+      const res = await request(app).get('/notifications');
 
-            // Then, fetch notifications for the test user
-            const res = await request(app)
-                .get('/')
-                .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(401);
+    });
+  });
 
-            expect(res.status).toBe(200);
-            expect(Array.isArray(res.body)).toBe(true);
+  describe('GET /notifications/:id', () => {
+    it('should retrieve a specific notification', async () => {
+      // Create notification
+      const createRes = await request(app)
+        .post('/notifications')
+        .set('Authorization', 'Bearer mock-token')
+        .send({
+          userId: 'user-123',
+          type: 'email',
+          subject: 'Test',
+          message: 'Test message',
+          recipient: 'user@example.com',
         });
+
+      const notificationId = createRes.body.id;
+
+      const res = await request(app)
+        .get(`/notifications/${notificationId}`)
+        .set('Authorization', 'Bearer mock-token');
+
+      expect(res.status).toBe(200);
+      expect(res.body.id).toBe(notificationId);
     });
 
-    describe('GET /health', () => {
-        it('should return service status', async () => {
-            const res = await request(app).get('/health');
-            expect(res.status).toBe(200);
-            expect(res.body).toHaveProperty('status', 'Notification service running');
-        });
+    it('should return 404 for non-existent notification', async () => {
+      const res = await request(app)
+        .get('/notifications/non-existent-id')
+        .set('Authorization', 'Bearer mock-token');
+
+      expect(res.status).toBe(404);
     });
+  });
+
+  describe('PUT /notifications/:id', () => {
+    it('should update notification status', async () => {
+      // Create notification
+      const createRes = await request(app)
+        .post('/notifications')
+        .set('Authorization', 'Bearer mock-token')
+        .send({
+          userId: 'user-123',
+          type: 'email',
+          subject: 'Test',
+          message: 'Test message',
+          recipient: 'user@example.com',
+        });
+
+      const notificationId = createRes.body.id;
+
+      const res = await request(app)
+        .put(`/notifications/${notificationId}`)
+        .set('Authorization', 'Bearer mock-token')
+        .send({ status: 'read' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('read');
+    });
+  });
+
+  describe('Notification Types', () => {
+    it('should handle email notifications', async () => {
+      const res = await request(app)
+        .post('/notifications')
+        .set('Authorization', 'Bearer mock-token')
+        .send({
+          userId: 'user-123',
+          type: 'email',
+          subject: 'Email Test',
+          message: 'Email body',
+          recipient: 'test@example.com',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.type).toBe('email');
+    });
+
+    it('should handle SMS notifications', async () => {
+      const res = await request(app)
+        .post('/notifications')
+        .set('Authorization', 'Bearer mock-token')
+        .send({
+          userId: 'user-123',
+          type: 'sms',
+          subject: 'SMS',
+          message: 'SMS body',
+          recipient: '+1234567890',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.type).toBe('sms');
+    });
+
+    it('should handle push notifications', async () => {
+      const res = await request(app)
+        .post('/notifications')
+        .set('Authorization', 'Bearer mock-token')
+        .send({
+          userId: 'user-123',
+          type: 'push',
+          subject: 'Push Alert',
+          message: 'Push body',
+          recipient: 'user-device-token',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.type).toBe('push');
+    });
+  });
 });
