@@ -4,7 +4,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "test": "jest --detectOpenHandles",
+    "test:integration": "jest --testPathPatterns=integration --detectOpenHandles",
+    "test:watch": "jest --watch"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +23,10 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "@babel/preset-env": "^7.29.5",
+    "babel-jest": "^30.4.1",
+    "jest": "^30.4.2",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
   }
 }
