@@ -13,7 +13,7 @@ jobs:
   # ────────────────────────────────────────
   # AUTH SERVICE TESTS
   # ────────────────────────────────────────
-  auth-service-tests:
+    auth-service-tests:
     runs-on: ubuntu-latest
     
     services:
@@ -21,8 +21,8 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_DB: auth_test
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test123
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -50,8 +50,8 @@ jobs:
         env:
           DB_HOST: localhost
           DB_PORT: 5432
-          DB_USER: test
-          DB_PASSWORD: test123
+          DB_USER: postgres
+          DB_PASSWORD: postgres
           DB_NAME: auth_test
           JWT_SECRET: test-secret-key
         run: npm test -- --watchAll=false
@@ -59,15 +59,15 @@ jobs:
   # ────────────────────────────────────────
   # NOTIFICATION SERVICE TESTS
   # ────────────────────────────────────────
-  notification-service-tests:
+    notification-service-tests:
     runs-on: ubuntu-latest
     
     services:
       mongodb:
         image: mongo:7
         env:
-          MONGO_INITDB_ROOT_USERNAME: mongo
-          MONGO_INITDB_ROOT_PASSWORD: mongo123
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: admin
         options: >-
           --health-cmd mongosh
           --health-interval 10s
@@ -77,23 +77,11 @@ jobs:
           - 27017:27017
 
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: 'notification-service/package-lock.json'
-      
-      - name: Install dependencies
-        working-directory: ./notification-service
-        run: npm ci
-      
+      # ... other steps ...
       - name: Run tests
         working-directory: ./notification-service
         env:
-          MONGODB_URI: mongodb://mongo:mongo123@localhost:27017/notification_test
+          MONGODB_URI: mongodb://admin:admin@localhost:27017/notification_test
           RABBITMQ_URL: amqp://admin:admin123@localhost:5672
           JWT_SECRET: test-secret-key
         run: npm test -- --watchAll=false
@@ -109,8 +97,8 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_DB: auth_test
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test123
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
