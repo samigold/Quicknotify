@@ -6,6 +6,21 @@ exports.createNotification = async (req, res) => {
     const { type, recipient, subject, message } = req.body;
     const userId = req.headers["x-user-id"];
 
+      // Basic validation
+    if (!type || !recipient || !subject || !message) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const validTypes = ["email", "sms", "in-app"];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ message: "Invalid notification type" });
+    }
+
+    if (!userId) {
+      return res.status(401).json({ message: "User ID missing in headers" });
+    }
+
+    // Save notification to database
     const notification = await Notification.create({
       userId,
       type,

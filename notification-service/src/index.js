@@ -38,3 +38,5 @@ const PORT = process.env.PORT || 3002;
     console.log(`Notification Service running on port ${PORT}`);
   });
 })();
+
+module.exports = app; // Export for testing
