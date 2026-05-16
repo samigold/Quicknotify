@@ -53,7 +53,7 @@ describe('Auth Service', () => {
           email: 'incomplete@example.com',
         });
 
-      expect(res.status).toBe(500); // Changed from 400
+      expect(res.status).toBe(400); // Changed from 400
     });
   });
 
