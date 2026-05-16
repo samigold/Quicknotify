@@ -120,9 +120,6 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *         description: Unauthorized
  */
 
-// ── JWT Auth Check (runs before proxying)
-app.use(authMiddleware);
-
 // ── Routes → Services
 app.use(
   "/api/auth",
@@ -131,6 +128,9 @@ app.use(
     changeOrigin: true,
   })
 );
+
+// ── JWT Auth Check (runs before proxying)
+app.use(authMiddleware);
 
 app.use(
   "/api/notifications",
