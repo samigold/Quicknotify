@@ -45,14 +45,14 @@ jobs:
       - name: Run tests
         working-directory: ./auth-service
         env:
-          PORT: 3001
           DB_HOST: localhost
           DB_PORT: 5432
           DB_USER: postgres
           DB_PASSWORD: postgres123
           DB_NAME: auth_test
           JWT_SECRET: test-secret-key
-        run: npm test
+          NODE_ENV: test
+        run: npm test -- --forceExit
 
   # ────────────────────────────────────────
   # NOTIFICATION SERVICE TESTS
@@ -67,23 +67,23 @@ jobs:
           MONGO_INITDB_ROOT_USERNAME: mongo
           MONGO_INITDB_ROOT_PASSWORD: mongo123
         options: >-
-          --health-cmd "mongosh --username mongo --password mongo123 --eval \"db.adminCommand('ping')\""
+          --health-cmd "mongosh --username mongo --password mongo123 --authenticationDatabase admin --eval \"db.adminCommand('ping')\""
           --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-timeout 10s
+          --health-retries 10
         ports:
           - 27017:27017
 
       rabbitmq:
-        image: rabbitmq:3-management
+        image: rabbitmq:3
         env:
           RABBITMQ_DEFAULT_USER: admin
           RABBITMQ_DEFAULT_PASS: admin123
         options: >-
-          --health-cmd "rabbitmq-diagnostics ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 15s
+          --health-timeout 10s
+          --health-retries 10
         ports:
           - 5672:5672
 
@@ -108,13 +108,15 @@ jobs:
           MONGO_URI: mongodb://mongo:mongo123@localhost:27017/notification_test?authSource=admin
           RABBITMQ_URL: amqp://admin:admin123@localhost:5672
           JWT_SECRET: test-secret-key
-        run: npm test
+          NODE_ENV: test
+        run: npm test -- --forceExit
 
   # ────────────────────────────────────────
   # GATEWAY INTEGRATION TESTS
   # ────────────────────────────────────────
   gateway-integration-tests:
     runs-on: ubuntu-latest
+    needs: [auth-service-tests, notification-service-tests]
 
     services:
       postgres:
@@ -137,23 +139,23 @@ jobs:
           MONGO_INITDB_ROOT_USERNAME: mongo
           MONGO_INITDB_ROOT_PASSWORD: mongo123
         options: >-
-          --health-cmd "mongosh --username mongo --password mongo123 --eval \"db.adminCommand('ping')\""
+          --health-cmd "mongosh --username mongo --password mongo123 --authenticationDatabase admin --eval \"db.adminCommand('ping')\""
           --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-timeout 10s
+          --health-retries 10
         ports:
           - 27017:27017
 
       rabbitmq:
-        image: rabbitmq:3-management
+        image: rabbitmq:3
         env:
           RABBITMQ_DEFAULT_USER: admin
           RABBITMQ_DEFAULT_PASS: admin123
         options: >-
-          --health-cmd "rabbitmq-diagnostics ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 15s
+          --health-timeout 10s
+          --health-retries 10
         ports:
           - 5672:5672
 
@@ -165,9 +167,11 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install Auth Service
-        working-directory: ./auth-service
-        run: npm ci
+      - name: Install all Node dependencies
+        run: |
+          cd auth-service && npm ci
+          cd ../notification-service && npm ci
+          cd ../gateway && npm ci
 
       - name: Start Auth Service
         working-directory: ./auth-service
@@ -179,11 +183,8 @@ jobs:
           DB_PASSWORD: postgres123
           DB_NAME: auth_test
           JWT_SECRET: test-secret-key
+          NODE_ENV: test
         run: npm start &
-
-      - name: Install Notification Service
-        working-directory: ./notification-service
-        run: npm ci
 
       - name: Start Notification Service
         working-directory: ./notification-service
@@ -192,27 +193,27 @@ jobs:
           MONGO_URI: mongodb://mongo:mongo123@localhost:27017/notification_test?authSource=admin
           RABBITMQ_URL: amqp://admin:admin123@localhost:5672
           JWT_SECRET: test-secret-key
+          NODE_ENV: test
         run: npm start &
-
-      - name: Install Gateway
-        working-directory: ./gateway
-        run: npm ci
 
       - name: Wait for services to be ready
         run: |
           echo "Waiting for auth service..."
-          npx wait-on http://localhost:3001/health --timeout 30000
+          timeout 30 bash -c 'until curl -sf http://localhost:3001/health; do sleep 2; done'
+          echo "Auth service ready"
           echo "Waiting for notification service..."
-          npx wait-on http://localhost:3002/health --timeout 30000
+          timeout 30 bash -c 'until curl -sf http://localhost:3002/health; do sleep 2; done'
+          echo "Notification service ready"
 
-      - name: Run integration tests
+      - name: Run gateway integration tests
         working-directory: ./gateway
         env:
           PORT: 3000
           AUTH_SERVICE_URL: http://localhost:3001
           NOTIFICATION_SERVICE_URL: http://localhost:3002
           JWT_SECRET: test-secret-key
-        run: npm test
+          NODE_ENV: test
+        run: npm run test:integration -- --forceExit
 
   # ────────────────────────────────────────
   # DELIVERY SERVICE TESTS
@@ -227,23 +228,23 @@ jobs:
           MONGO_INITDB_ROOT_USERNAME: mongo
           MONGO_INITDB_ROOT_PASSWORD: mongo123
         options: >-
-          --health-cmd "mongosh --username mongo --password mongo123 --eval \"db.adminCommand('ping')\""
+          --health-cmd "mongosh --username mongo --password mongo123 --authenticationDatabase admin --eval \"db.adminCommand('ping')\""
           --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-timeout 10s
+          --health-retries 10
         ports:
           - 27017:27017
 
       rabbitmq:
-        image: rabbitmq:3-management
+        image: rabbitmq:3
         env:
           RABBITMQ_DEFAULT_USER: admin
           RABBITMQ_DEFAULT_PASS: admin123
         options: >-
-          --health-cmd "rabbitmq-diagnostics ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 15s
+          --health-timeout 10s
+          --health-retries 10
         ports:
           - 5672:5672
 
@@ -276,11 +277,22 @@ jobs:
 
     steps:
       - name: All tests passed
-        if: ${{ needs.auth-service-tests.result == 'success' && needs.notification-service-tests.result == 'success' && needs.gateway-integration-tests.result == 'success' && needs.delivery-service-tests.result == 'success' }}
+        if: >
+          needs.auth-service-tests.result == 'success' &&
+          needs.notification-service-tests.result == 'success' &&
+          needs.gateway-integration-tests.result == 'success' &&
+          needs.delivery-service-tests.result == 'success'
         run: echo "All tests passed successfully!"
 
       - name: Some tests failed
-        if: ${{ failure() }}
+        if: >
+          needs.auth-service-tests.result != 'success' ||
+          needs.notification-service-tests.result != 'success' ||
+          needs.gateway-integration-tests.result != 'success' ||
+          needs.delivery-service-tests.result != 'success'
         run: |
-          echo "One or more jobs failed. Check logs above."
+          echo "auth-service: ${{ needs.auth-service-tests.result }}"
+          echo "notification-service: ${{ needs.notification-service-tests.result }}"
+          echo "gateway-integration: ${{ needs.gateway-integration-tests.result }}"
+          echo "delivery-service: ${{ needs.delivery-service-tests.result }}"
           exit 1
