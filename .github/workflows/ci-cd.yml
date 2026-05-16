@@ -196,6 +196,16 @@ jobs:
           NODE_ENV: test
         run: npm start &
 
+      - name: Start Gateway
+        working-directory: ./gateway
+        env:
+          PORT: 3000
+          AUTH_SERVICE_URL: http://localhost:3001
+          NOTIFICATION_SERVICE_URL: http://localhost:3002
+          JWT_SECRET: test-secret-key
+          NODE_ENV: test
+        run: npm start &
+
       - name: Wait for services to be ready
         run: |
           echo "Waiting for auth service..."
@@ -204,6 +214,9 @@ jobs:
           echo "Waiting for notification service..."
           timeout 30 bash -c 'until curl -sf http://localhost:3002/health; do sleep 2; done'
           echo "Notification service ready"
+          echo "Waiting for gateway service..."
+          timeout 30 bash -c 'until curl -sf http://localhost:3000/health; do sleep 2; done'
+          echo "Gateway service ready"
 
       - name: Run gateway integration tests
         working-directory: ./gateway

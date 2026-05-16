@@ -1,11 +1,10 @@
 const express = require("express");
-const dotenv = require("dotenv");
+require("dotenv").config();
 const sequelize = require("./config/db");
 const authRoutes = require("./routes/auth");
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
 
-dotenv.config();
 
 const app = express();
 app.use(express.json());
