@@ -13,6 +13,8 @@ const app = express();
 
 app.set("trust proxy", 1); // Trust first proxy (if behind a load balancer)
 
+app.use(express.static("public")); // Serve static files from the "public" directory
+
 app.use(metricsMiddleware);
 
 // ── Rate Limiting 
