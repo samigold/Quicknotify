@@ -5,9 +5,17 @@ const connectDB = require("./config/db");
 const { connectRabbitMQ } = require("./config/rabbitmq");
 const notificationRoutes = require("./routes/notification");
 const jwt = require("jsonwebtoken");
+const { register, metricsMiddleware } = require("./metrics");
 
 const app = express();
 app.use(express.json());
+app.use(metricsMiddleware);
+
+// ── Metrics Endpoint
+app.get("/metrics", (req, res) => {
+  res.set("Content-Type", register.contentType);
+  res.end(register.metrics());
+});
 
 // ── Forward user info from gateway ────────────
 app.use((req, res, next) => {

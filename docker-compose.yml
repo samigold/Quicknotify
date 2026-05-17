@@ -35,7 +35,30 @@
     volumes:
       - mongo_data:/data/db
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: quicknotify-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: quicknotify-grafana
+    ports:
+      - "3030:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
 volumes:
   rabbitmq_data:
   postgres_data:
   mongo_data:
+  grafana_data:

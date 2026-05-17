@@ -1,0 +1,27 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'gateway'
+    static_configs:
+      - targets: ['tender-youthfulness-production-6712.up.railway.app']
+    scheme: https
+    metrics_path: /metrics
+
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['quicknotify-production.up.railway.app']
+    scheme: https
+    metrics_path: /metrics
+
+  - job_name: 'notification-service'
+    static_configs:
+      - targets: ['industrious-truth-production-d70a.up.railway.app']
+    scheme: https
+    metrics_path: /metrics
+
+  - job_name: 'delivery-service'
+    static_configs:
+      - targets: ['quicknotify.onrender.com']
+    scheme: https
+    metrics_path: /actuator/prometheus

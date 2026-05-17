@@ -4,10 +4,12 @@ const sequelize = require("./config/db");
 const authRoutes = require("./routes/auth");
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
+const { register, metricsMiddleware } = require("./metrics");
 
 
 const app = express();
 app.use(express.json());
+app.use(metricsMiddleware);
 
 // ── Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -74,6 +76,12 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *       401:
  *         description: Invalid credentials
  */
+
+app.get("/metrics", (req, res) => {
+  res.set("Content-Type", register.contentType);
+  res.end(register.metrics());
+});
+
 // ── Routes ─────────────────────────────────────
 app.use("/", authRoutes);
 

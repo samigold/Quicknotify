@@ -5,12 +5,15 @@ const dotenv = require("dotenv");
 const authMiddleware = require("./middleware/auth");
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
+const { register, metricsMiddleware } = require("./metrics");
 
 dotenv.config();
 
 const app = express();
 
 app.set("trust proxy", 1); // Trust first proxy (if behind a load balancer)
+
+app.use(metricsMiddleware);
 
 // ── Rate Limiting 
 const limiter = rateLimit({
@@ -131,6 +134,11 @@ app.use(
   })
 );
 
+// ── Metrics Endpoint
+app.get("/metrics", (req, res) => {
+  res.set("Content-Type", register.contentType);
+  res.end(register.metrics());
+});
 // ── JWT Auth Check (runs before proxying)
 app.use(authMiddleware);
 
