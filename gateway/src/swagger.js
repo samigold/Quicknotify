@@ -10,10 +10,14 @@ const options = {
         },
         servers: [
             {
-                url: 'http://localhost:3000',
-                description: 'Development server',
+                url: 'https://tender-youthfulness-production-6712.up.railway.app',
+                description: 'Production server',
             },
-        ],
+            {
+                url: 'http://localhost:3000',
+                description: 'Local development',
+            },
+            ],
         components: {
             securitySchemes: {
                 BearerAuth: {
