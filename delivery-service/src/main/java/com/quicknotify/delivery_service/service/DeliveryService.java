@@ -3,7 +3,7 @@ package com.quicknotify.delivery_service.service;
 import com.quicknotify.delivery_service.model.DeliveryLog;
 import com.quicknotify.delivery_service.model.NotificationMessage;
 
-import lombok.Value;
+import org.springframework.beans.factory.annotation.Value;
 
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
@@ -20,15 +20,16 @@ import java.time.LocalDateTime;
 public class DeliveryService {
 
     private final MongoTemplate mongoTemplate;
+    private final String resendApiKey;
+    private final String resendFromEmail;
 
-    @Value("${resend.api.key}")
-    private String resendApiKey;
-
-    @Value("${resend.from.email}")
-    private String resendFromEmail;
-
-    public DeliveryService(MongoTemplate mongoTemplate) {
+    public DeliveryService(
+                        MongoTemplate mongoTemplate,
+                        @Value("${resend.api.key}") String resendApiKey,
+                        @Value("${resend.from.email}") String resendFromEmail) {
         this.mongoTemplate = mongoTemplate;
+        this.resendApiKey = resendApiKey;
+        this.resendFromEmail = resendFromEmail;
     }
 
     public void processNotification(NotificationMessage msg) {
