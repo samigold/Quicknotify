@@ -135,9 +135,9 @@ app.use(
 );
 
 // ── Metrics Endpoint
-app.get("/metrics", (req, res) => {
+app.get("/metrics", async (req, res) => {
   res.set("Content-Type", register.contentType);
-  res.end(register.metrics());
+  res.end(await register.metrics());
 });
 // ── JWT Auth Check (runs before proxying)
 app.use(authMiddleware);

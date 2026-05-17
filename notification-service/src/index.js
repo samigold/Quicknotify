@@ -12,9 +12,9 @@ app.use(express.json());
 app.use(metricsMiddleware);
 
 // ── Metrics Endpoint
-app.get("/metrics", (req, res) => {
+app.get("/metrics", async (req, res) => {
   res.set("Content-Type", register.contentType);
-  res.end(register.metrics());
+  res.end(await register.metrics());
 });
 
 // ── Forward user info from gateway ────────────

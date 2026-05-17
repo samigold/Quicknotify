@@ -77,9 +77,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *         description: Invalid credentials
  */
 
-app.get("/metrics", (req, res) => {
+app.get("/metrics", async (req, res) => {
   res.set("Content-Type", register.contentType);
-  res.end(register.metrics());
+  res.end(await register.metrics());
 });
 
 // ── Routes ─────────────────────────────────────
