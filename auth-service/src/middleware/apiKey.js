@@ -1,7 +1,7 @@
 const User = require("../models/user");
 const bcryptjs = require("bcryptjs");
 
-exports.verifyApiKey = async (req, res, next) => {
+const verifyApiKey = async (req, res, next) => {
     try {
         // Check for API key in headers
         const apiKey = req.headers["x-api-key"];
@@ -41,3 +41,4 @@ exports.verifyApiKey = async (req, res, next) => {
     }
 };
 
+module.exports = verifyApiKey;

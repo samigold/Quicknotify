@@ -1,4 +1,4 @@
-import { User } from "../models";
+const User = require("../models/user");
 
 exports.fetchApiKey = async (req, res) => {
   try {

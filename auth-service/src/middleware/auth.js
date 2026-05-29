@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 
-exports.verifyJWT = (req, res, next) => {
+const verifyJWT = (req, res, next) => {
   try {
     // Get token from Authorization header
     const authHeader = req.headers.authorization;
@@ -36,3 +36,5 @@ exports.verifyJWT = (req, res, next) => {
     res.status(500).json({ error: "Token verification failed" });
   }
 };
+
+module.exports = verifyJWT;

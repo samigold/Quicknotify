@@ -27,3 +27,18 @@ module.exports = (req, res, next) => {
     return res.status(403).json({ message: "Invalid or expired token" });
   }
 };
+
+exports.verifyAuth = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  const apiKey = req.headers["x-api-key"];
+
+  if (token) {
+    // JWT authentication
+    return verifyJWT(req, res, next);
+  } else if (apiKey) {
+    // API Key authentication
+    return verifyApiKey(req, res, next);
+  } else {
+    return res.status(401).json({ error: "No authentication provided" });
+  }
+};

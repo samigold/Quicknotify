@@ -26,6 +26,12 @@ const options = {
                     bearerFormat: 'JWT',
                     description: 'JWT Authorization header using the Bearer scheme',
                 },
+                ApiKeyAuth: {
+                    type: 'apiKey',
+                    in: 'header',
+                    name: 'x-api-key',
+                    description: 'API key authentication using x-api-key header',
+                },
             },
         },
     },

@@ -4,6 +4,7 @@ const sequelize = require("./config/db");
 const authRoutes = require("./routes/auth");
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
+const apiKeyRoutes = require("./routes/apiKey");
 const { register, metricsMiddleware } = require("./metrics");
 
 
@@ -84,6 +85,7 @@ app.get("/metrics", async (req, res) => {
 
 // ── Routes ─────────────────────────────────────
 app.use("/", authRoutes);
+app.use("/api/auth/apikey", apiKeyRoutes);
 
 // ── Health Check ───────────────────────────────
 app.get("/health", (req, res) => {

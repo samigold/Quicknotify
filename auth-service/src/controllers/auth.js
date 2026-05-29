@@ -50,9 +50,9 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.generateApiKey = async(req, res) => {
+exports.generateApiKey = async (req, res) => {
   try {
-    const { userId } = req.user;
+    const userId = req.user.id;
     
     // Generate new API key
     const apiKey = require("crypto").randomBytes(32).toString("hex");
@@ -82,4 +82,4 @@ exports.generateApiKey = async(req, res) => {
   } catch (err) {
     res.status(500).json({ message: "API key generation failed", error: err.message });
   }
-}
+};
