@@ -50,6 +50,36 @@ exports.login = async (req, res) => {
   }
 };
 
-export.getApiKey = async(req, res){
-  
+exports.getApiKey = async(req, res){
+  try {
+    const { userId } = req.user;
+    
+    // Generate new API key
+    const apiKey = require("crypto").randomBytes(32).toString("hex");
+
+    // Hash API key before storing
+    const hashedKey = await bcrypt.hash(apiKey, 10);
+
+    // Update user with new API key and timestamps
+    const user = await User.findByPk(userId);
+
+    if(!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await user.update({
+      apiKey: hashedKey,
+      apiKeyCreatedAt: new Date(),
+      apiKeyActive: true
+    });
+
+    // Return plain API key to user (only on creation)
+    res.status(201).json({
+      apiKey,
+      message: "API key generated. Store it securely, it won't be shown again.",
+      warning: "Please store this API key securely. It will not be shown again and cannot be retrieved. If lost, you will need to generate a new one."
+    });
+  } catch (err) {
+    res.status(500).json({ message: "API key generation failed", error: err.message });
+  }
 }
