@@ -50,7 +50,7 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.getApiKey = async(req, res){
+exports.generateApiKey = async(req, res) => {
   try {
     const { userId } = req.user;
     
