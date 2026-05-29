@@ -7,6 +7,23 @@ const User = sequelize.define("User", {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
+  apiKey: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true,
+  },
+  apiKeyCreatedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  apiKeyLastUsedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  apiKeyActive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
   email: {
     type: DataTypes.STRING,
     allowNull: false,

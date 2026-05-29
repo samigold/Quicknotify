@@ -49,3 +49,7 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Login failed", error: err.message });
   }
 };
+
+export.getApiKey = async(req, res){
+  
+}
