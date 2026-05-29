@@ -17,11 +17,14 @@ const verifyJWT = (req, res, next) => {
 
     // Attach user info to request
     req.user = {
-      id: decoded.id,
+      userId: decoded.userId,
       email: decoded.email,
       role: decoded.role,
       authType: "jwt"
     };
+
+    console.log("Decoded token:", decoded);
+    console.log("req.user after assignment:", req.user);
 
     next();
   } catch (err) {

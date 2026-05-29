@@ -52,16 +52,20 @@ exports.login = async (req, res) => {
 
 exports.generateApiKey = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     
     // Generate new API key
     const apiKey = require("crypto").randomBytes(32).toString("hex");
+
+    console.log(`Generated API key for user ${userId}: ${apiKey}`);
 
     // Hash API key before storing
     const hashedKey = await bcrypt.hash(apiKey, 10);
 
     // Update user with new API key and timestamps
     const user = await User.findByPk(userId);
+
+    console.log(`Updating user ${userId} with new API key...`);
 
     if(!user) {
       return res.status(404).json({ message: "User not found" });

@@ -2,7 +2,7 @@ const User = require("../models/user");
 
 exports.fetchApiKey = async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.id);
+    const user = await User.findByPk(req.user.userId);
     
     if (!user || !user.apiKeyActive) {
       return res.status(404).json({ error: "No active API key" });
@@ -21,7 +21,7 @@ exports.fetchApiKey = async (req, res) => {
 
 exports.revokeApiKey = async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.id);
+    const user = await User.findByPk(req.user.user);
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
