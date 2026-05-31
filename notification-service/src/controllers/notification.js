@@ -4,7 +4,7 @@ const { publishMessage } = require("../config/rabbitmq");
 exports.createNotification = async (req, res) => {
   try {
     const { type, recipient, subject, message } = req.body;
-    const userId = req.headers["x-user-id"];
+    const userId = req.user.userId;
 
       // Basic validation
     if (!type || !recipient || !subject || !message) {

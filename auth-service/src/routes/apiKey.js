@@ -13,4 +13,7 @@ router.get("/info", verifyJWT, apiKeyController.fetchApiKey);
 // Revoke API key (requires JWT login)
 router.delete("/revoke", verifyJWT, apiKeyController.revokeApiKey);
 
+//validate API key (used by notification service, no JWT required)
+router.get("/validate", apiKeyController.validateApiKey);
+
 module.exports = router;
