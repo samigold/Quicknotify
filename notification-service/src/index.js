@@ -1,12 +1,12 @@
-require("dotenv").config();
-
 const express = require("express");
 const connectDB = require("./config/db");
 const { connectRabbitMQ } = require("./config/rabbitmq");
 const notificationRoutes = require("./routes/notification");
 const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
 const { register, metricsMiddleware } = require("./metrics");
 
+dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(metricsMiddleware);

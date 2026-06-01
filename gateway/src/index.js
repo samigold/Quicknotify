@@ -2,8 +2,8 @@ const express = require("express");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 const rateLimit = require("express-rate-limit");
 const dotenv = require("dotenv");
-const authMiddleware = require("./middleware/auth");
-const verifyAuth = require("./middleware/auth");
+const authMiddleware = require("./middleware/auth").default;
+const {verifyAuth} = require("./middleware/auth");
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
 const { register, metricsMiddleware } = require("./metrics");
@@ -442,18 +442,18 @@ app.get("/metrics", async (req, res) => {
   res.end(await register.metrics());
 });
 // ── JWT Auth Check (runs before proxying)
-app.use(authMiddleware);
+//app.use(authMiddleware);
 
 // ── Combined Auth Middleware (JWT or API Key)
-app.use(verifyAuth)
+//app.use(verifyAuth)
 
 // ── Protected Routes (require auth)
-app.use("/api/notifications", verifyAuth, createProxyMiddleware({
+app.use("/api/notifications", (req, res, next) => verifyAuth(req, res, next), createProxyMiddleware({
   target: process.env.NOTIFICATION_SERVICE_URL,
   changeOrigin: true,
 }));
 
-// ── Start ──────────────────────────────────────
+// ── Start ────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`API Gateway running on port ${PORT}`);

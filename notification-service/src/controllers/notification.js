@@ -6,6 +6,8 @@ exports.createNotification = async (req, res) => {
     const { type, recipient, subject, message } = req.body;
     const userId = req.user.userId;
 
+    console.log(`Creating notification for user ${userId} with type ${type}`);
+
       // Basic validation
     if (!type || !recipient || !subject || !message) {
       return res.status(400).json({ message: "Missing required fields" });

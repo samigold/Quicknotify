@@ -1,4 +1,5 @@
 const User = require("../models/user");
+const bcrypt = require("bcryptjs");
 
 exports.fetchApiKey = async (req, res) => {
   try {
@@ -42,6 +43,8 @@ exports.revokeApiKey = async (req, res) => {
 exports.validateApiKey = async (req, res) => {
   try {
     const apiKey = req.headers["x-api-key"];
+
+    console.log("Verification api header from validate url " + apiKey);
     
     if (!apiKey) {
       return res.status(401).json({ message: "API key is required" });
@@ -73,6 +76,7 @@ exports.validateApiKey = async (req, res) => {
       role: user.role
     });
   } catch (err) {
-    res.status(500).json({ message: "API key validation failed", error: err.message });
+    res.status(500).json({ message: "API key validation failed", error: err });
+    console.log("Error from auth service " + err);
   }
 };

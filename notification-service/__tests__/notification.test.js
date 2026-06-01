@@ -2,12 +2,16 @@ const request = require('supertest');
 const app = require('../src/index');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 
 // Mock RabbitMQ
 jest.mock('../src/config/rabbitmq', () => ({
   connectRabbitMQ: jest.fn().mockResolvedValue(undefined),
   publishMessage: jest.fn().mockResolvedValue(undefined),
 }));
+
+// Mock axios to intercept API key validation calls
+jest.mock('axios');
 
 describe('Notification Service', () => {
     let token;
@@ -21,6 +25,15 @@ describe('Notification Service', () => {
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
+
+        // Mock API key validation to always succeed for testing
+            jest.mocked(axios).get.mockResolvedValue({
+        data: {
+            userId: 'testuser-123',
+            email: 'test@example.com',
+            role: 'user'
+        }
+    });
     });
 
     afterAll(async () => {
@@ -31,6 +44,23 @@ describe('Notification Service', () => {
     });
 
     describe('POST /', () => {
+        it('should create a new notification with API key', async () => {
+            const res = await request(app)
+            .post('/')
+            .set('x-api-key', 'test-api-key')
+            .send({
+                type: 'email',
+                recipient: 'user@example.com',
+                subject: 'Test Notification',
+                message: 'This is a test notification.'
+            });
+
+            expect(res.status).toBe(201);
+            expect(res.body).toHaveProperty('message', 'Notification queued');
+            expect(res.body).toHaveProperty('notification');
+            expect(res.body.notification._id).toBeTruthy();
+        });
+
         it('should create a new notification', async () => {
             const res = await request(app)
                 .post('/')
@@ -48,7 +78,7 @@ describe('Notification Service', () => {
             expect(res.body.notification._id).toBeTruthy();
         });
 
-        it('should reject notifications without JWT token', async () => {
+        it('should reject notifications without authentication', async () => {
             const res = await request(app)
             .post('/')
             .send({
@@ -59,6 +89,22 @@ describe('Notification Service', () => {
              });
 
              expect(res.status).toBe(401);
+        });
+
+        it ('should reject notifications with invalid API key', async () => {
+            jest.mocked(axios).get.mockRejectedValueOnce({ response: { status: 401 } });
+
+            const res = await request(app)
+            .post('/')
+            .set('x-api-key', 'invalid-api-key')
+            .send({
+                type: 'email',
+                recipient: 'user@example.com',
+                subject: 'Test Notification',
+                message: 'This is a test notification.'
+            });
+
+            expect(res.status).toBe(401);
         });
 
         it ('should reject notifications with missing fields', async () => {
