@@ -151,6 +151,88 @@ Your user sessions       Your app's backend stores this token
 
 ---
 
+## Email Delivery System
+
+QuickNotify includes a **production-ready email delivery system** using SMTP. Emails are processed asynchronously via RabbitMQ for reliability and scalability.
+
+### Configuration
+
+Set these environment variables in `delivery-service/.env`:
+
+```env
+# Email Configuration
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password  # Use App Password, not account password
+SMTP_FROM=noreply@yourapp.com
+SMTP_FROM_NAME=YourApp Notifications
+
+# Database & Services (existing)
+DATABASE_URL=jdbc:postgresql://localhost:5432/delivery_service
+SPRING_DATASOURCE_USERNAME=postgres
+SPRING_DATASOURCE_PASSWORD=postgres
+RABBITMQ_HOST=localhost
+```
+
+### Using Gmail with App Password
+
+1. Enable **2-Step Verification** on your Google Account.
+2. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
+3. Select **Mail** and **Windows (or your OS)**.
+4. Copy the generated 16-character password.
+5. Use this password as `SMTP_PASSWORD` in `.env`.
+
+### How It Works
+
+1. **User sends notification** → Notification Service saves to MongoDB with status `pending`.
+2. **Event published to RabbitMQ** → Message contains notification details.
+3. **Delivery Service consumes message** → Fetches notification from Notification Service API.
+4. **Email sent via SMTP** → Real email delivered to recipient.
+5. **Status updated** → Notification status changes to `sent` or `failed`.
+
+### Notification Flow
+
+```
+POST /api/notifications
+  ↓
+Notification Service (MongoDB)
+  ↓
+RabbitMQ Topic Exchange
+  ↓
+Delivery Service Consumer
+  ↓
+SMTP Server
+  ↓
+Recipient Email Inbox
+```
+
+### Testing Email Delivery Locally
+
+Use the provided PowerShell script to test the full flow:
+
+```powershell
+.\test-apikey.ps1
+```
+
+This script:
+1. Registers a new user
+2. Logs in
+3. Generates an API key
+4. Sends a notification with email type
+5. Polls delivery status
+6. Verifies the email was queued for delivery
+
+Check delivery-service logs to confirm SMTP delivery:
+
+```
+2026-06-01 14:32:18 INFO: Processing notification from queue
+2026-06-01 14:32:19 INFO: Sending email to enduser@example.com
+2026-06-01 14:32:21 INFO: Email sent successfully
+```
+
+---
+
 ## Architecture
 
 QuickNotify is built as four independent microservices:
@@ -261,7 +343,25 @@ QuickNotify is built as four independent microservices:
 
 ## API Reference
 
-All requests go through the **API Gateway**. Auth endpoints are public. Notification endpoints require a valid Bearer token.
+All requests go through the **API Gateway**. Auth endpoints are public. Notification endpoints require a valid Bearer token or API key.
+
+### Authentication Methods
+
+QuickNotify supports **two authentication methods** for protected endpoints:
+
+#### 1. JWT Bearer Token (Short-lived, session-based)
+```http
+Authorization: Bearer eyJhbGci...
+```
+Obtained by logging in. Expires in 24 hours. Suitable for interactive user sessions.
+
+#### 2. API Key (Long-lived, static)
+```http
+Authorization: ApiKey sk_live_1a2b3c4d5e6f7g8h9i0j
+```
+Generated once, never expires. Suitable for server-to-server communication. Recommended for production integrations.
+
+---
 
 ### Register
 
@@ -306,11 +406,96 @@ Content-Type: application/json
 
 > Store this token in your app's environment variables. It expires in 24 hours.
 
+---
+
+### API Key Management
+
+#### Generate API Key
+
+```http
+POST /api/auth/api-keys
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "Production Server"
+}
+```
+
+**Response `201`:**
+```json
+{
+  "message": "API key generated",
+  "apiKey": {
+    "id": "key_uuid_here",
+    "name": "Production Server",
+    "key": "sk_live_1a2b3c4d5e6f7g8h9i0j",
+    "createdAt": "2026-06-01T10:00:00.000Z"
+  }
+}
+```
+
+> **Important:** The `key` is only shown once at creation. Store it securely. It will never be displayed again.
+
+#### Get API Key Info
+
+```http
+GET /api/auth/api-keys/<key_id>
+Authorization: Bearer <token>
+```
+
+**Response `200`:**
+```json
+{
+  "message": "API key found",
+  "apiKey": {
+    "id": "key_uuid_here",
+    "name": "Production Server",
+    "createdAt": "2026-06-01T10:00:00.000Z",
+    "lastUsed": "2026-06-01T12:30:15.000Z",
+    "status": "active"
+  }
+}
+```
+
+#### Revoke API Key
+
+```http
+DELETE /api/auth/api-keys/<key_id>
+Authorization: Bearer <token>
+```
+
+**Response `200`:**
+```json
+{
+  "message": "API key revoked"
+}
+```
+
+---
+
 ### Send a Notification
+
+#### Using JWT Bearer Token
 
 ```http
 POST /api/notifications
 Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "type": "email",
+  "recipient": "enduser@example.com",
+  "subject": "Your order is confirmed",
+  "message": "Order #1234 has been placed successfully."
+}
+```
+
+#### Using API Key
+
+```http
+POST /api/notifications
+Authorization: ApiKey sk_live_1a2b3c4d5e6f7g8h9i0j
 Content-Type: application/json
 
 {
@@ -335,7 +520,7 @@ Content-Type: application/json
     "subject": "Your order is confirmed",
     "message": "Order #1234 has been placed successfully.",
     "status": "pending",
-    "createdAt": "2026-05-17T00:24:03.463Z"
+    "createdAt": "2026-06-01T00:24:03.463Z"
   }
 }
 ```
@@ -347,6 +532,13 @@ The `status: "pending"` means the notification has been queued. The Delivery Ser
 ```http
 GET /api/notifications
 Authorization: Bearer <token>
+```
+
+Or with API Key:
+
+```http
+GET /api/notifications
+Authorization: ApiKey sk_live_1a2b3c4d5e6f7g8h9i0j
 ```
 
 **Response `200`:**
