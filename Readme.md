@@ -747,8 +747,8 @@ QuickNotify is a capstone project demonstrating microservices architecture. Befo
 
 Features planned for future versions:
 
-- [ ] **API Key system** — static keys instead of expiring JWTs for server-to-server auth
-- [ ] **Real email delivery** — SMTP integration via Nodemailer or SendGrid
+- [*] **API Key system** — static keys instead of expiring JWTs for server-to-server auth
+- [*] **Real email delivery** — SMTP integration via Nodemailer or SendGrid
 - [ ] **Real SMS delivery** — Twilio or Termii integration
 - [ ] **Webhooks** — POST to your app when delivery status changes
 - [ ] **Node.js SDK** — `npm install quicknotify-sdk`
