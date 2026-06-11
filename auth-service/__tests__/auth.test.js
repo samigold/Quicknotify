@@ -1,5 +1,6 @@
-const TEST_WEBHOOK_ENCRYPTION_KEY = 'a'.repeat(64);
-process.env.WEBHOOK_ENCRYPTION_KEY = process.env.WEBHOOK_ENCRYPTION_KEY || TEST_WEBHOOK_ENCRYPTION_KEY;
+const crypto = require('crypto');
+
+process.env.WEBHOOK_ENCRYPTION_KEY = process.env.WEBHOOK_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
 
 const request = require('supertest');
 const app = require('../src/index');
