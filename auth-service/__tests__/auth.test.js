@@ -8,9 +8,9 @@ describe('Auth Service', () => {
     await sequelize.sync({ force: true });
   });
 
-  afterAll(async () => {
-    await sequelize.close();
-  });
+  // afterAll(async () => {
+  //   await sequelize.close();
+  // });
 
   describe('POST /register', () => {
     it('should register a new user', async () => {
@@ -105,3 +105,59 @@ describe('Auth Service', () => {
     });
   });
 });
+
+describe('POST /api/webhooks', () => {
+  let token;
+  let userId;
+
+  beforeEach(async () => {
+    //Create a user and get JWT token
+    await sequelize.sync({ force: true }); // clear and sync database
+
+    const res = await request(app)
+      .post('/register')
+      .send({
+        email: 'webhook@example.com',
+        password: 'password123',
+      });
+
+    userId = res.body.userId;
+
+    // Login to get token
+    const loginRes = await request(app)
+      .post('/login')
+      .send({
+        email: 'webhook@example.com',
+        password: 'password123',
+      });
+
+    token = loginRes.body.token;
+  });
+
+  it('should create a new webhook', async () => {
+    const res = await request(app)
+      .post('/api/webhooks')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        url: 'https://example.com/webhook',
+        subscribedEvents: ['notification.sent', 'notification.failed'],
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toHaveProperty('id');
+    expect(res.body).toHaveProperty('url');
+    expect(res.body).toHaveProperty('subscribedEvents');
+    expect(res.body).toHaveProperty('isEnabled');
+    expect(res.body).toHaveProperty('secret');
+  });
+
+//   it('should require URL and events', async () => {
+//     const res = await request(app)
+//       .post('/api/webhooks')
+//       .send({
+//         url: 'https://example.com/webhook',
+//       });
+
+//     expect(res.status).toBe(400);
+//   });
+ });

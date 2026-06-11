@@ -1,10 +1,12 @@
 const express = require("express");
 require("dotenv").config();
+require("./models"); // Load models and associations
 const sequelize = require("./config/db");
 const authRoutes = require("./routes/auth");
+const apiKeyRoutes = require("./routes/apiKey");
+const webhookRoutes = require("./routes/webhook");
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
-const apiKeyRoutes = require("./routes/apiKey");
 const { register, metricsMiddleware } = require("./metrics");
 
 
@@ -157,6 +159,40 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *         description: User not found
  */
 
+/**
+ * @swagger
+ * /api/webhooks:
+ *   post:
+ *     summary: Create a new webhook
+ *     tags:
+ *       - Webhooks
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - url
+ *               - events
+ *             properties:
+ *               url:
+ *                 type: string
+ *               events:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Webhook created successfully
+ *       401:
+ *         description: Unauthorized - Invalid JWT token
+ *       404:
+ *         description: User not found
+ */
+
 app.get("/metrics", async (req, res) => {
   res.set("Content-Type", register.contentType);
   res.end(await register.metrics());
@@ -165,6 +201,7 @@ app.get("/metrics", async (req, res) => {
 // ── Routes ─────────────────────────────────────
 app.use("/", authRoutes);
 app.use("/apikey", apiKeyRoutes);
+app.use("/api/webhooks", webhookRoutes);
 
 // ── Health Check ───────────────────────────────
 app.get("/health", (req, res) => {
