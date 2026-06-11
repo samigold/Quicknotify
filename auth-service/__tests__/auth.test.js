@@ -1,6 +1,7 @@
-const crypto = require('crypto');
-
-process.env.WEBHOOK_ENCRYPTION_KEY = process.env.WEBHOOK_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+const TEST_WEBHOOK_ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+if (process.env.NODE_ENV === 'test') {
+  process.env.WEBHOOK_ENCRYPTION_KEY = process.env.WEBHOOK_ENCRYPTION_KEY || TEST_WEBHOOK_ENCRYPTION_KEY;
+}
 
 const request = require('supertest');
 const app = require('../src/index');
