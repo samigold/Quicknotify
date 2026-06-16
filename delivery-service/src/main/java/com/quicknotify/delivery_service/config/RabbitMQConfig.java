@@ -9,6 +9,6 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue notificationQueue() {
-        return new Queue("notification.created", true);
+        return new Queue("notification.sent", true);
     }
 }
