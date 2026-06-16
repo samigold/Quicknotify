@@ -17,7 +17,7 @@ public class NotificationConsumer {
         this.deliveryService = deliveryService;
     }
 
-    @RabbitListener(queues = "notification.created")
+    @RabbitListener(queues = "notification.sent")
     public void consume(Message message) {
        try {
         String body = new String(message.getBody());
