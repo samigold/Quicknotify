@@ -1,11 +1,12 @@
 const redis = require('redis');
 
 let client;
+const url = "redis://default:0OEakQx5bljGR5aDEnAl2EKqfHEDEkRy@redis-17521.c81.us-east-1-2.ec2.cloud.redislabs.com:17521";
 
 async function connectRedis() {
   try {
     // ✅ Use Redis URL with credentials
-    const url = process.env.REDIS_URL || 'redis://default:@localhost:6379';
+    const url = process.env.REDIS_URL || url;
     
     console.log('Connecting to Redis:', url);
     

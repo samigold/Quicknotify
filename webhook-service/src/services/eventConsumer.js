@@ -18,12 +18,14 @@ async function startEventConsumer() {
     await channel.assertQueue('notification.sent', { durable: true });
     await channel.assertQueue('notification.failed', { durable: true });
     logger.info('✓ All queues asserted');
+    console.log('✓ All queues asserted');
     
     // Consume from delivery.completed events
     channel.consume('delivery.completed', async (msg) => {
       if (msg) {
         const event = JSON.parse(msg.content.toString());
         logger.info('Received delivery.completed event', { eventId: event.id });
+        console.log('Received delivery.completed event', { eventId: event.id });
         
         // Add job to Redis queue for processing
         await redis.lPush(
@@ -37,6 +39,8 @@ async function startEventConsumer() {
           })
         );
         
+        console.log('Job added to Redis queue for delivery.completed event', { eventId: event.id });
+
         channel.ack(msg);
       }
     });
@@ -48,6 +52,7 @@ async function startEventConsumer() {
       if (msg) {
         const event = JSON.parse(msg.content.toString());
         logger.info('Received notification.sent event', { eventId: event.id });
+        console.log('Received notification.sent event', { eventId: event.id });
         
         await redis.lPush(
           'webhook:jobs',
@@ -59,14 +64,18 @@ async function startEventConsumer() {
             attempts: 0,
           })
         );
-        
+
+        console.log('Job added to Redis queue for notification.sent event', { eventId: event.id });
+
         channel.ack(msg);
       }
     });
     
     logger.info('Event consumer started');
+    console.log('Event consumer started');
   } catch (error) {
     logger.error('Error starting event consumer:', error);
+    console.error('Error starting event consumer:', error);
     throw error;
   }
 }
