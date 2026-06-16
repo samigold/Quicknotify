@@ -453,6 +453,243 @@ app.use("/api/notifications", (req, res, next) => verifyAuth(req, res, next), cr
   changeOrigin: true,
 }));
 
+// ── Webhook Routes (protected)
+/**
+ * @swagger
+ * tags:
+ *   - name: Webhooks
+ *     description: Webhook management and configuration
+ *
+ * /api/webhooks:
+ *   post:
+ *     summary: Register a new webhook
+ *     tags:
+ *       - Webhooks
+ *     description: Register a new webhook endpoint for event delivery
+ *     security:
+ *       - BearerAuth: []
+ *       - ApiKeyAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - url
+ *               - events
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: User ID who owns this webhook
+ *                 example: "user123"
+ *               url:
+ *                 type: string
+ *                 format: uri
+ *                 description: HTTPS endpoint URL where webhook events will be delivered
+ *                 example: "https://api.example.com/webhooks"
+ *               events:
+ *                 type: array
+ *                 description: List of events this webhook should receive
+ *                 items:
+ *                   type: string
+ *                   enum: [delivery.completed, delivery.failed, notification.sent]
+ *                 example: ["delivery.completed", "delivery.failed"]
+ *               secret:
+ *                 type: string
+ *                 description: Secret key for signing webhook payloads (optional)
+ *                 example: "secret_key_123"
+ *               active:
+ *                 type: boolean
+ *                 description: Whether this webhook is active
+ *                 default: true
+ *     responses:
+ *       201:
+ *         description: Webhook registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 webhook:
+ *                   type: object
+ *       400:
+ *         description: Invalid webhook data
+ *       401:
+ *         description: Unauthorized
+ *   get:
+ *     summary: Get all webhooks for a user
+ *     tags:
+ *       - Webhooks
+ *     description: Retrieve all registered webhooks for the authenticated user
+ *     security:
+ *       - BearerAuth: []
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: User ID to fetch webhooks for
+ *     responses:
+ *       200:
+ *         description: Webhooks retrieved successfully
+ *       400:
+ *         description: Missing userId parameter
+ *       401:
+ *         description: Unauthorized
+ *
+ * /api/webhooks/{id}:
+ *   get:
+ *     summary: Get a specific webhook
+ *     tags:
+ *       - Webhooks
+ *     security:
+ *       - BearerAuth: []
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Webhook retrieved successfully
+ *       404:
+ *         description: Webhook not found
+ *   put:
+ *     summary: Update a webhook
+ *     tags:
+ *       - Webhooks
+ *     security:
+ *       - BearerAuth: []
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               url:
+ *                 type: string
+ *                 format: uri
+ *               events:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               active:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Webhook updated successfully
+ *       404:
+ *         description: Webhook not found
+ *   delete:
+ *     summary: Delete a webhook
+ *     tags:
+ *       - Webhooks
+ *     security:
+ *       - BearerAuth: []
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Webhook deleted successfully
+ *       404:
+ *         description: Webhook not found
+ *
+ * /api/webhooks/{id}/logs:
+ *   get:
+ *     summary: Get webhook delivery logs
+ *     tags:
+ *       - Webhooks
+ *     security:
+ *       - BearerAuth: []
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Delivery logs retrieved successfully
+ *       404:
+ *         description: Webhook not found
+ *
+ * /api/webhooks/{id}/stats:
+ *   get:
+ *     summary: Get webhook statistics
+ *     tags:
+ *       - Webhooks
+ *     security:
+ *       - BearerAuth: []
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ *       404:
+ *         description: Webhook not found
+ *
+ * /api/webhooks/{id}/test:
+ *   post:
+ *     summary: Test a webhook endpoint
+ *     tags:
+ *       - Webhooks
+ *     security:
+ *       - BearerAuth: []
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Test webhook initiated
+ *       404:
+ *         description: Webhook not found
+ */
+app.use("/api/webhooks", (req, res, next) => verifyAuth(req, res, next), createProxyMiddleware({
+  target: process.env.WEBHOOK_SERVICE_URL,
+  changeOrigin: true,
+}));
+
 // ── Start ────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

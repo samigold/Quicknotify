@@ -1,5 +1,3 @@
-// webhook-service/src/index.js
-
 const express = require('express');
 require('dotenv').config();
 const logger = require('./config/logger');
@@ -8,6 +6,7 @@ const { connectRedis } = require('./config/redis');
 const { startEventConsumer } = require('./services/eventConsumer');
 const { startJobWorker } = require('./services/jobWorker');
 const errorHandler = require('./middleware/errorHandler');
+const webhookRoutes = require('./routes/webhooks');
 
 const app = express();
 app.use(express.json());
@@ -16,6 +15,9 @@ app.use(express.json());
 app.get('/health', (req, res) => {
   res.json({ status: 'Webhook service is running' });
 });
+
+// Webhook management routes
+app.use('/api/webhooks', webhookRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
