@@ -13,7 +13,6 @@ public class NotificationPublisher {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    @Autowired
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void publishDeliveryCompleted(String notificationId, String channel, String status, String recipient) {
