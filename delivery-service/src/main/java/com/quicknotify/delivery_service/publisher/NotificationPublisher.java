@@ -1,4 +1,4 @@
-package com.quicknotify.publisher;
+package com.quicknotify.delivery_service.publisher;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;

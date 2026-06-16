@@ -2,7 +2,7 @@ package com.quicknotify.delivery_service.service;
 
 import com.quicknotify.delivery_service.model.DeliveryLog;
 import com.quicknotify.delivery_service.model.NotificationMessage;
-import com.quicknotify.publisher.NotificationPublisher;
+import com.quicknotify.delivery_service.publisher.NotificationPublisher;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
