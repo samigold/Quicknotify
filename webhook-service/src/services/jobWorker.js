@@ -9,7 +9,8 @@ const { deliverWebhook } = require('./webhookDelivery');
 async function startJobWorker() {
   const redis = getRedisClient();
   
-  async function processJob() {
+async function processJob() {
+    let job;
     try {
       // Pop a job from the queue (blocking for up to 30 seconds)
       const jobData = await redis.brPop('webhook:jobs', 30);
@@ -18,7 +19,7 @@ async function startJobWorker() {
         return; // Queue was empty
       }
       
-      const job = JSON.parse(jobData.element);
+      job = JSON.parse(jobData.element);
       logger.info('Processing webhook job', { jobId: job.eventId, attempts: job.attempts });
 
       try{
@@ -52,9 +53,9 @@ async function startJobWorker() {
       }      
     } catch (error) {
       logger.error('Error processing job:', {
-        jobId: job.eventId,
+        jobId: job ? job.eventId : 'unknown',
         error: error.message,
-        attempts: job.attempts,
+        attempts: job ? job.attempts : 0,
       });
 
       await new Promise(resolve => setTimeout(resolve, 1000));

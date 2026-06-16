@@ -18,9 +18,10 @@ function signWebhookPayload(payload, secret) {
  * Create headers for the webhook request including the signature.
  * @param {string} payload - The payload to be sent in the webhook.
  * @param {string} secret - The secret key used for signing.
+ * @param {string} eventId - The event ID to include in the headers.
  * @returns {object} - An object containing the headers for the webhook request.
  */
-function createWebhookHeaders(payload, secret) {
+function createWebhookHeaders(payload, secret, eventId) {
     const signature = signWebhookPayload(payload, secret);
 
     return {

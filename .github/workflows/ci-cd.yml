@@ -231,6 +231,74 @@ jobs:
         run: npm run test:integration -- --forceExit
 
   # ────────────────────────────────────────
+  # WEBHOOK SERVICE TESTS
+  # ────────────────────────────────────────
+
+  webhook-service-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: admin
+          RABBITMQ_DEFAULT_PASS: admin123
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5672:5672
+          - 15672:15672
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: webhook-service/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./webhook-service
+        run: npm ci
+
+      - name: Run tests
+        working-directory: ./webhook-service
+        env:
+          PORT: 3004
+          NODE_ENV: test
+          REDIS_URL: redis://localhost:6379
+          RABBITMQ_URL: amqp://admin:admin123@localhost:5672
+          LOG_LEVEL: error
+        run: npm test -- --forceExit
+
+      - name: Generate coverage report
+        working-directory: ./webhook-service
+        run: npm run test:coverage
+        continue-on-error: true
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./webhook-service/coverage/lcov.info
+          flags: webhook-service
+        continue-on-error: true
+
+  # ────────────────────────────────────────
   # DELIVERY SERVICE TESTS
   # ────────────────────────────────────────
   delivery-service-tests:
@@ -287,7 +355,7 @@ jobs:
   # ────────────────────────────────────────
   final-status:
     runs-on: ubuntu-latest
-    needs: [auth-service-tests, notification-service-tests, gateway-integration-tests, delivery-service-tests]
+    needs: [auth-service-tests, notification-service-tests, gateway-integration-tests, webhook-service-tests, delivery-service-tests]
     if: always()
 
     steps:
@@ -296,6 +364,7 @@ jobs:
           needs.auth-service-tests.result == 'success' &&
           needs.notification-service-tests.result == 'success' &&
           needs.gateway-integration-tests.result == 'success' &&
+          needs.webhook-service-tests.result == 'success' &&
           needs.delivery-service-tests.result == 'success'
         run: echo "All tests passed successfully!"
 
@@ -304,10 +373,12 @@ jobs:
           needs.auth-service-tests.result != 'success' ||
           needs.notification-service-tests.result != 'success' ||
           needs.gateway-integration-tests.result != 'success' ||
+          needs.webhook-service-tests.result != 'success' ||
           needs.delivery-service-tests.result != 'success'
         run: |
           echo "auth-service: ${{ needs.auth-service-tests.result }}"
           echo "notification-service: ${{ needs.notification-service-tests.result }}"
           echo "gateway-integration: ${{ needs.gateway-integration-tests.result }}"
+          echo "webhook-service: ${{ needs.webhook-service-tests.result }}"
           echo "delivery-service: ${{ needs.delivery-service-tests.result }}"
           exit 1

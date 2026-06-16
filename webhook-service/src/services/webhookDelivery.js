@@ -9,27 +9,30 @@ const { createWebhookHeaders } = require('../utils/webhookSigner');
 */
 
 async function deliverWebhook(webhookEndpoint, payload, eventId, decryptedSecret) {
-try {
-    const headers = createWebhookHeaders(eventId, decryptedSecret, eventId);
+  try {
+    const headers = createWebhookHeaders(payload, decryptedSecret, eventId);
 
     const response = await axios.post(webhookEndpoint, payload, { 
-        headers,
-        timeout: 5000 // Set a timeout for the request
-        // You can also add retry logic here if needed, using libraries like axios-retry or implementing your own retry mechanism.
+      headers,
+      timeout: 5000 // Set a timeout for the request
     });
 
     logger.info(`Webhook delivered successfully to ${webhookEndpoint} with status ${response.status} and event ID ${eventId}`);
-    return response.data; // Return the response data if needed
-} catch (error) {
+    return {
+      success: true,
+      statusCode: response.status,
+      data: response.data,
+    };
+  } catch (error) {
     logger.error(`Failed to deliver webhook to ${webhookEndpoint} with event ID ${eventId}: ${error.message}`);
 
     return {
-        success: false,
-        statusCode: error.response ? error.response.status : null,
-        responseBody: error.response ? error.response.data : null,
-        errorMessage: error.message
-    }
-}
+      success: false,
+      statusCode: error.response ? error.response.status : null,
+      responseBody: error.response ? error.response.data : null,
+      errorMessage: error.message,
+    };
+  }
 }
 
 module.exports = {
