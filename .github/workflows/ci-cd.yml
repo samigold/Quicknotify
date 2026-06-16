@@ -51,6 +51,7 @@ jobs:
           DB_PASSWORD: postgres123
           DB_NAME: auth_test
           JWT_SECRET: test-secret-key
+          WEBHOOK_ENCRYPTION_KEY: f7016f2baeeaf68d44df3eac4a2351771534f323b0a63c77796d308efd82b217
           NODE_ENV: test
         run: npx dotenv-cli -e /dev/null -- npm test -- --forceExit || npm test -- --forceExit
 
@@ -184,6 +185,7 @@ jobs:
           DB_NAME: auth_test
           JWT_SECRET: test-secret-key
           NODE_ENV: test
+          WEBHOOK_ENCRYPTION_KEY: f7016f2baeeaf68d44df3eac4a2351771534f323b0a63c77796d308efd82b217
         run: npm start &
 
       - name: Start Notification Service
