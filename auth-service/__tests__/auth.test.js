@@ -1,3 +1,8 @@
+const TEST_WEBHOOK_ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+if (process.env.NODE_ENV === 'test') {
+  process.env.WEBHOOK_ENCRYPTION_KEY = process.env.WEBHOOK_ENCRYPTION_KEY || TEST_WEBHOOK_ENCRYPTION_KEY;
+}
+
 const request = require('supertest');
 const app = require('../src/index');
 const User = require('../src/models/user');
