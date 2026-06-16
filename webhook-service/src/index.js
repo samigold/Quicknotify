@@ -12,10 +12,6 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 app.use(express.json());
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'Webhook service is running' });
-});
 
 // Error handling middleware
 app.use(errorHandler);

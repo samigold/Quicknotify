@@ -34,7 +34,7 @@ exports.createNotification = async (req, res) => {
 
     try{
     // Publish event to RabbitMQ
-    publishMessage("notification.created", {
+    publishMessage("notification.sent", {
       notificationId: notification._id,
       type,
       recipient,
@@ -45,13 +45,13 @@ exports.createNotification = async (req, res) => {
     res.status(201).json({ message: "Notification queued", notification });
 
     } catch (publishError) {
-      console.error("Error publishing notification.created:", publishError);
-      logger.error(`Failed to publish notification.created for notification ${notification._id}: ${publishError.message}`);
+      console.error("Error publishing notification.sent:", publishError);
+      logger.error(`Failed to publish notification.sent for notification ${notification._id}: ${publishError.message}`);
       await publishNotificationFailed(notification._id, userId, type, publishError.message);
     }
   } catch (err) {
-    logger.error(`Failed to create notification: ${err.message}`);
-    res.status(500).json({ message: "Failed to create notification", error: err.message });
+    logger.error(`Failed to send notification: ${err.message}`);
+    res.status(500).json({ message: "Failed to send notification", error: err.message });
   }
 };
 
