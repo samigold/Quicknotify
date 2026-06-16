@@ -8,3 +8,5 @@ WEBHOOKS_SUMMARY.md
 WEBHOOKS_TEST_PLAN.md
 test-apikey.ps1
 test-webhooks.ps1
+combined.log
+error.log

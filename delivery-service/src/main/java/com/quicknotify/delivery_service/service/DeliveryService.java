@@ -2,6 +2,10 @@ package com.quicknotify.delivery_service.service;
 
 import com.quicknotify.delivery_service.model.DeliveryLog;
 import com.quicknotify.delivery_service.model.NotificationMessage;
+import com.quicknotify.publisher.NotificationPublisher;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
 
 import org.springframework.beans.factory.annotation.Value;
 
@@ -16,8 +20,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 
+
 @Service
 public class DeliveryService {
+
+@Autowired
+private NotificationPublisher rabbitMQPublisher;
 
     private final MongoTemplate mongoTemplate;
     private final String resendApiKey;
@@ -43,9 +51,43 @@ public class DeliveryService {
 
         try {
             switch (msg.getType()) {
-                case "email" -> sendEmail(msg);
-                case "sms" -> simulateSend(msg);
-                case "push" -> simulateSend(msg);
+                case "email" -> {
+                    sendEmail(msg);
+                    log.setStatus("delivered");
+                    System.out.println("✓ Delivered email to " + msg.getRecipient());
+
+                    // Publish delivery.completed event
+                    rabbitMQPublisher.publishDeliveryCompleted(
+                           msg.getNotificationId(),
+                           "EMAIL",
+                           "DELIVERED",
+                           msg.getRecipient()
+                    );
+                }
+                case "sms" -> {
+                    simulateSend(msg);
+                    log.setStatus("delivered");
+                    System.out.println("✓ Delivered SMS to " + msg.getRecipient());
+                    
+                    rabbitMQPublisher.publishDeliveryCompleted(
+                           msg.getNotificationId(),
+                           "SMS",
+                           "DELIVERED",
+                           msg.getRecipient()
+                    );
+                }
+                case "push" -> {
+                    simulateSend(msg);
+                    log.setStatus("delivered");
+                    System.out.println("✓ Delivered push notification to " + msg.getRecipient());
+                    
+                    rabbitMQPublisher.publishDeliveryCompleted(
+                           msg.getNotificationId(),
+                           "PUSH",
+                           "DELIVERED",
+                           msg.getRecipient()
+                    );
+                }
                 default -> throw new IllegalArgumentException("Unsupported notification type: " + msg.getType());
             }
             log.setStatus("delivered");
@@ -91,6 +133,7 @@ public class DeliveryService {
         }
 
         System.out.println("Email sent to " + msg.getRecipient() + " with subject: " + msg.getSubject());
+
     }
 
     private void simulateSend(NotificationMessage msg) {
